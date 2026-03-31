@@ -51,9 +51,9 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
     ];
 
     return (
-        <div className="bg-background dark:bg-[#0f111c] text-on-background dark:text-slate-200 min-h-screen flex transition-colors duration-300">
+        <div className="bg-background dark:bg-[#0f111c] text-on-background dark:text-slate-200 min-h-screen flex transition-colors duration-300 supports-[min-height:100dvh]:min-h-[100dvh]">
             {/* Sidebar */}
-            <aside className="hidden md:flex flex-col w-64 h-screen p-6 gap-y-4 bg-white dark:bg-[#0A0D14] sticky top-0 border-r border-slate-200 dark:border-white/5 z-50 shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-colors duration-300">
+            <aside className="hidden md:flex flex-col w-64 h-screen supports-[height:100dvh]:h-[100dvh] p-6 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] gap-y-4 bg-white dark:bg-[#0A0D14] sticky top-0 border-r border-slate-200 dark:border-white/5 z-50 shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-colors duration-300">
                 <div className="flex items-center gap-3 mb-8 px-4 cursor-pointer group">
                     <span className="material-symbols-outlined text-primary dark:text-blue-400 text-3xl font-bold bg-primary/5 dark:bg-blue-500/10 p-2 rounded-xl group-hover:scale-105 transition-transform">account_balance_wallet</span>
                     <h1 className="text-xl font-extrabold text-[#0040a1] dark:text-white font-['Inter'] tracking-tight">Hnah Finance</h1>
@@ -127,12 +127,12 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 min-w-0">
+            <main className="flex-1 min-w-0 pt-[env(safe-area-inset-top)] pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
                 {children}
             </main>
 
             {/* Mobile Navigation */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-t border-slate-200/50 dark:border-slate-800/50 px-6 py-4 flex justify-between items-center z-[60]">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-t border-slate-200/50 dark:border-slate-800/50 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex justify-between items-center z-[60]">
                 {navItems.map(item => (
                     <button
                         key={item.id}

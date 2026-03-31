@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useFirestoreQuery } from '../hooks/useFirestore';
 import { db, type Transaction } from '../db';
-import { addDoc } from 'firebase/firestore';
+import { db as firestoreDb } from '../firebase';
+import { addDoc, deleteDoc, doc } from 'firebase/firestore';
 import type { PageId } from './Layout';
 
 interface HistoryPageProps {
@@ -146,19 +147,34 @@ export default function HistoryPage(_props: HistoryPageProps) {
     const handleCreateSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const rawAmt = parseFloat(createForm.amount.replace(/,/g, ''));
-        if (!rawAmt || !createForm.description) return;
+        if (!rawAmt || !createForm.description) {
+            alert('Vui lòng điền đầy đủ số tiền và mô tả giao dịch!');
+            return;
+        }
         const finalAmount = createForm.txType === 'expense' ? -Math.abs(rawAmt) : Math.abs(rawAmt);
         const emailId = `manual_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-        await addDoc(db.transactions, {
-            emailId,
-            amount: finalAmount,
-            description: createForm.description,
-            date: new Date(createForm.date).getTime(),
-            category: createForm.category || null,
-            status: 'classified',
-        });
-        setCreateForm(emptyCreateForm);
-        setIsCreateModalOpen(false);
+
+        try {
+            const parsedDate = new Date(createForm.date).getTime();
+            const finalDate = isNaN(parsedDate) ? Date.now() : parsedDate;
+
+            await addDoc(db.transactions, {
+                emailId,
+                amount: finalAmount,
+                description: createForm.description,
+                date: finalDate,
+                category: createForm.category || null,
+                status: 'classified',
+            } as any);
+
+
+            setCreateForm(emptyCreateForm);
+            setIsCreateModalOpen(false);
+            alert('Thêm giao dịch thủ công thành công!');
+        } catch (error) {
+            console.error('Error adding manual transaction:', error);
+            alert('Lỗi: Không thể thêm giao dịch. Vui lòng kiểm tra console.');
+        }
     };
 
     return (
@@ -543,12 +559,28 @@ export default function HistoryPage(_props: HistoryPageProps) {
                     <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-surface-container-lowest shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-surface-container-highest/20">
                         <div className="flex items-center justify-between px-6 py-5 border-b border-surface-container-highest/20 bg-surface-container-lowest/80 backdrop-blur-md">
                             <h3 className="text-xl font-black text-on-surface">Chi tiết</h3>
-                            <button
-                                onClick={() => setSelectedTx(null)}
-                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container text-outline hover:text-on-surface transition-colors"
-                            >
-                                <span className="material-symbols-outlined">close</span>
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={async () => {
+                                        if (window.confirm('Bạn có chắc chắn muốn xóa giao dịch này? Hành động này không thể hoàn tác.')) {
+                                            if (selectedTx.id) {
+                                                await deleteDoc(doc(firestoreDb, 'transactions', selectedTx.id));
+                                                setSelectedTx(null);
+                                            }
+                                        }
+                                    }}
+                                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-error/10 text-error transition-colors"
+                                    title="Xóa giao dịch"
+                                >
+                                    <span className="material-symbols-outlined">delete</span>
+                                </button>
+                                <button
+                                    onClick={() => setSelectedTx(null)}
+                                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container text-outline hover:text-on-surface transition-colors"
+                                >
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 space-y-8">
@@ -579,11 +611,29 @@ export default function HistoryPage(_props: HistoryPageProps) {
                                 <div>
                                     <p className="text-xs font-bold text-outline uppercase tracking-wider mb-1">Phân loại</p>
                                     <div className="inline-flex items-center gap-2 mt-1">
-                                        <span className={`text-sm font-bold px-3 py-1.5 rounded-lg ${selectedTx.status === 'unclassified'
+                                        <span className={`flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg ${selectedTx.status === 'unclassified'
                                             ? 'bg-amber-100 text-amber-800'
                                             : 'bg-surface-container-highest text-on-surface'
                                             }`}>
-                                            {selectedTx.category || '❔ Chưa phân loại'}
+                                            {(() => {
+                                                if (selectedTx.status === 'unclassified' || !selectedTx.category) {
+                                                    return (
+                                                        <>
+                                                            <span className="material-symbols-outlined text-[16px]">pending_actions</span>
+                                                            Chưa phân loại
+                                                        </>
+                                                    );
+                                                }
+                                                const parts = selectedTx.category.split(' ');
+                                                const icon = parts[0];
+                                                const name = parts.slice(1).join(' ') || icon;
+                                                return (
+                                                    <>
+                                                        <span className="material-symbols-outlined text-[16px]">{icon}</span>
+                                                        {name}
+                                                    </>
+                                                );
+                                            })()}
                                         </span>
                                     </div>
                                 </div>

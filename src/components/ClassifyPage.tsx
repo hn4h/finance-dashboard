@@ -75,7 +75,7 @@ export default function ClassifyPage() {
     // Loading state
     if (transactions === undefined) {
         return (
-            <div className="flex items-center justify-center h-screen">
+            <div className="flex items-center justify-center h-screen supports-[height:100dvh]:h-[100dvh]">
                 <div className="animate-pulse flex flex-col items-center gap-4">
                     <div className="w-[400px] h-[300px] bg-surface-container-high rounded-3xl" />
                     <div className="flex gap-3">
@@ -96,7 +96,7 @@ export default function ClassifyPage() {
     // Empty / All done state
     if (remaining === 0) {
         return (
-            <div className="flex items-center justify-center min-h-screen p-6">
+            <div className="flex items-center justify-center min-h-screen supports-[min-height:100dvh]:min-h-[100dvh] p-6">
                 <div className="text-center max-w-md">
                     <div className="relative mb-8">
                         <div className="w-32 h-32 mx-auto bg-green-100 rounded-full flex items-center justify-center animate-bounce" style={{ animationDuration: '2s' }}>
@@ -133,7 +133,7 @@ export default function ClassifyPage() {
                 : 'translate-y-0 opacity-100 scale-100';
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-6 md:p-10">
+        <div className="flex flex-col items-center justify-center min-h-screen supports-[min-height:100dvh]:min-h-[100dvh] p-6 md:p-10">
             {/* Header */}
             <div className="w-full max-w-lg mb-8 text-center">
                 <h2 className="text-[28px] font-black tracking-tight text-on-background mb-2">Phân loại giao dịch</h2>

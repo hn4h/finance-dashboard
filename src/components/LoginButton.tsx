@@ -1,12 +1,13 @@
 import { useGoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../AuthContext';
+import { Wallet } from 'lucide-react';
 
 export default function LoginButton() {
     const { setToken } = useAuth();
 
     const login = useGoogleLogin({
         onSuccess: (tokenResponse) => {
-            setToken(tokenResponse.access_token);
+            setToken(tokenResponse.access_token, tokenResponse.expires_in);
         },
         onError: () => {
             console.error('Login Failed');
@@ -17,9 +18,12 @@ export default function LoginButton() {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center max-w-sm mx-auto px-4">
-            <h1 className="text-3xl font-semibold mb-2">VP Finance Dashboard</h1>
+            <h1 className="text-3xl font-semibold mb-2 flex items-center justify-center gap-3">
+                <Wallet className="w-8 h-8 text-primary" />
+                Nova Finance
+            </h1>
             <p className="text-body mb-8">
-                Quản lý chi tiêu từ ngân hàng VPBank. Bắt đầu bằng cách đăng nhập vào tài khoản Gmail nhận thông báo giao dịch.
+                Quản lý chi tiêu cá nhân thông minh. Bắt đầu bằng cách đăng nhập vào tài khoản Gmail nhận thông báo giao dịch.
             </p>
 
             <button

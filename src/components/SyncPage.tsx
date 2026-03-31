@@ -3,7 +3,7 @@ import { useAuth } from '../AuthContext';
 import { syncEmails } from '../services/gmailService';
 
 export default function SyncPage() {
-    const { accessToken } = useAuth();
+    const { accessToken, firebaseUser } = useAuth();
     const [syncing, setSyncing] = useState(false);
     const [logs, setLogs] = useState<string[]>([]);
 
@@ -19,6 +19,11 @@ export default function SyncPage() {
     const handleSync = async () => {
         if (!accessToken) {
             alert('Vui lòng đăng nhập trước khi đồng bộ.');
+            return;
+        }
+
+        if (!firebaseUser) {
+            alert('Đang kết nối lại với Firebase hoặc phiên đăng nhập đã hết hạn. Vui lòng tải lại trang hoặc đăng nhập lại Google.');
             return;
         }
 

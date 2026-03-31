@@ -4,7 +4,7 @@ import { syncEmails } from '../services/gmailService';
 import { useFirestoreQuery } from '../hooks/useFirestore';
 import { where } from 'firebase/firestore';
 import type { Transaction } from '../db';
-import { RefreshCw, LogOut } from 'lucide-react';
+import { RefreshCw, LogOut, Wallet } from 'lucide-react';
 
 export default function Header() {
     const { accessToken, logout } = useAuth();
@@ -36,7 +36,8 @@ export default function Header() {
         <header className="p-4 bg-surface shadow-sm border-b border-surface-c flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
                 <h1 className="text-xl font-semibold text-heading flex items-center gap-2">
-                    VP Finance Dashboard
+                    <Wallet className="w-6 h-6 text-primary" />
+                    Nova Finance
                 </h1>
                 <div className="flex gap-4 mt-2 text-sm bg-bg px-3 py-1.5 rounded-md border border-surface-c">
                     <div><span className="text-body mr-1">Số dư:</span><span className="font-semibold text-heading">{balance.toLocaleString()}đ</span></div>
