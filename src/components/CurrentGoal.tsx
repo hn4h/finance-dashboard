@@ -1,5 +1,6 @@
-import { db } from '../db';
-import { useLiveQuery } from 'dexie-react-hooks';
+import type { Goal, IncomeEntry } from '../db';
+import { useFirestoreQuery } from '../hooks/useFirestore';
+import { where } from 'firebase/firestore';
 import type { PageId } from './Layout';
 
 interface CurrentGoalProps {
@@ -7,18 +8,17 @@ interface CurrentGoalProps {
 }
 
 export default function CurrentGoal({ onNavigate }: CurrentGoalProps) {
-    const firstActiveGoal = useLiveQuery(() =>
-        db.goals.where('status').equals('active').first()
-    );
+    const { data: activeGoals = [] } = useFirestoreQuery<Goal>('goals', [
+        where('status', '==', 'active')
+    ]);
+    const firstActiveGoal = activeGoals.length > 0 ? activeGoals[0] : null;
     const goalId = firstActiveGoal?.id;
 
-    const linkedIncomes = useLiveQuery(
-        () => goalId ? db.incomes.where('goalId').equals(goalId).toArray() : Promise.resolve([]),
-        [goalId]
-    ) || [];
+    const { data: incomes = [] } = useFirestoreQuery<IncomeEntry>('incomes');
+    const linkedIncomes = goalId ? incomes.filter(i => i.goalId === goalId) : [];
 
     // No active goal → fallback
-    if (firstActiveGoal === undefined) {
+    if (activeGoals === undefined) {
         // Still loading
         return (
             <div className="bg-surface-container-lowest p-8 rounded-xl shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] border border-surface-container-highest/20 h-full flex flex-col items-center justify-center text-center">

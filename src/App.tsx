@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { useAuth } from './AuthContext';
-import LoginButton from './components/LoginButton';
 import Layout, { type PageId } from './components/Layout';
 import Dashboard from './components/Dashboard';
 import ClassifyPage from './components/ClassifyPage';
@@ -10,7 +8,6 @@ import FinancePage from './components/FinancePage';
 import SyncPage from './components/SyncPage';
 
 export default function App() {
-  const { accessToken } = useAuth();
   const [currentPage, setCurrentPage] = useState<PageId>('dashboard');
 
   // if (!accessToken) {

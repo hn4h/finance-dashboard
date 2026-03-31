@@ -1,5 +1,6 @@
-import { db } from '../db';
-import { useLiveQuery } from 'dexie-react-hooks';
+import type { IncomeEntry, Transaction } from '../db';
+import { useFirestoreQuery } from '../hooks/useFirestore';
+import { where } from 'firebase/firestore';
 import RecentClassified from './RecentClassified';
 import CurrentGoal from './CurrentGoal';
 import type { PageId } from './Layout';
@@ -9,8 +10,10 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
-    const transactions = useLiveQuery(() => db.transactions.where('status').equals('classified').toArray()) || [];
-    const incomes = useLiveQuery(() => db.incomes.toArray()) || [];
+    const { data: transactions = [] } = useFirestoreQuery<Transaction>('transactions', [
+        where('status', '==', 'classified')
+    ]);
+    const { data: incomes = [] } = useFirestoreQuery<IncomeEntry>('incomes');
 
     const manualIncome = incomes.reduce((acc, i) => acc + i.amount, 0);
     const txIncome = transactions.filter(t => t.amount > 0).reduce((acc, t) => acc + t.amount, 0);

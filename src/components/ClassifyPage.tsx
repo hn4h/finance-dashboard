@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { db, type Transaction } from '../db';
+import { useFirestoreQuery } from '../hooks/useFirestore';
+import { where, doc, updateDoc } from 'firebase/firestore';
 
 const CATEGORIES = [
     { icon: 'restaurant', name: 'Ăn uống', color: 'bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-600' },
@@ -14,9 +15,10 @@ const CATEGORIES = [
 type AnimState = 'idle' | 'exit-up' | 'enter-up';
 
 export default function ClassifyPage() {
-    const transactions = useLiveQuery(() =>
-        db.transactions.where('status').equals('unclassified').sortBy('date')
-    );
+    const { data: rawTransactions = [] } = useFirestoreQuery<Transaction>('transactions', [
+        where('status', '==', 'unclassified')
+    ]);
+    const transactions = useMemo(() => [...rawTransactions].sort((a, b) => a.date - b.date), [rawTransactions]);
 
     const [animState, setAnimState] = useState<AnimState>('idle');
     const [displayTx, setDisplayTx] = useState<Transaction | null>(null);
@@ -44,10 +46,10 @@ export default function ClassifyPage() {
 
         // 2. After animation, update DB and prep next card
         setTimeout(async () => {
-            await db.transactions.update(displayTx.id!, {
+            await updateDoc(doc(db.transactions, displayTx.id!), {
                 category: categoryLabel,
                 status: 'classified',
-            });
+            } as any);
 
             // 3. Animate next card in
             setAnimState('enter-up');

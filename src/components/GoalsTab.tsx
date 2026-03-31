@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { db, type Goal } from '../db';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { db, type Goal, type IncomeEntry } from '../db';
+import { useFirestoreQuery } from '../hooks/useFirestore';
+import { addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 
 interface GoalFormData {
     name: string;
@@ -17,17 +18,17 @@ const emptyForm: GoalFormData = {
 export default function GoalsTab() {
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState<GoalFormData>(emptyForm);
-    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
 
-    const allGoals = useLiveQuery(() => db.goals.toArray()) || [];
-    const incomes = useLiveQuery(() => db.incomes.toArray()) || [];
+    const { data: allGoals = [] } = useFirestoreQuery<Goal>('goals');
+    const { data: incomes = [] } = useFirestoreQuery<IncomeEntry>('incomes');
 
     // Separate active and done
     const activeGoals = allGoals.filter(g => g.status === 'active');
     const doneGoals = allGoals.filter(g => g.status === 'done');
 
     // Calculate progress for each goal from linked incomes
-    const getGoalProgress = (goalId: number) => {
+    const getGoalProgress = (goalId: string) => {
         return incomes
             .filter(i => i.goalId === goalId)
             .reduce((sum, i) => sum + i.amount, 0);
@@ -39,19 +40,19 @@ export default function GoalsTab() {
         if (!form.name || !target) return;
 
         if (editingId !== null) {
-            await db.goals.update(editingId, {
+            await updateDoc(doc(db.goals, editingId), {
                 name: form.name,
                 targetAmount: target,
-                deadline: form.deadline ? new Date(form.deadline) : undefined,
-            });
+                deadline: form.deadline ? new Date(form.deadline).getTime() : undefined,
+            } as any);
             setEditingId(null);
         } else {
-            await db.goals.add({
+            await addDoc(db.goals, {
                 name: form.name,
                 targetAmount: target,
-                deadline: form.deadline ? new Date(form.deadline) : undefined,
+                deadline: form.deadline ? new Date(form.deadline).getTime() : undefined,
                 status: 'active',
-                createdAt: new Date(),
+                createdAt: Date.now(),
             });
         }
         setForm(emptyForm);
@@ -68,16 +69,16 @@ export default function GoalsTab() {
         setShowForm(true);
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
         if (confirm('Xoá mục tiêu này? (Các khoản thu nhập liên kết sẽ không bị xoá)')) {
-            await db.goals.delete(id);
+            await deleteDoc(doc(db.goals, id));
         }
     };
 
     const handleToggleDone = async (goal: Goal) => {
-        await db.goals.update(goal.id!, {
+        await updateDoc(doc(db.goals, goal.id!), {
             status: goal.status === 'active' ? 'done' : 'active',
-        });
+        } as any);
     };
 
     const handleCancel = () => {

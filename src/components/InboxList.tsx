@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
-import { db, type Transaction } from '../db';
+import { useMemo } from 'react';
+import type { Transaction } from '../db';
 import { useFirestoreQuery } from '../hooks/useFirestore';
-import { where, deleteDoc, doc } from 'firebase/firestore';
+import { where } from 'firebase/firestore';
 import TransactionCard from './TransactionCard';
 
 interface InboxListProps {

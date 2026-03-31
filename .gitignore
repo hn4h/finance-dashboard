@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +24,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# AI/Agent/Runtime directories
+.agent/
+.agents/
+.gemini/
+output.md
+ui_search_results.md
+ts-errors.txt
+build-log.txt
+dist/
+node_modules/

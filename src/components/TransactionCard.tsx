@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { db, type Transaction } from '../db';
+import { doc, updateDoc } from 'firebase/firestore';
 
 const CATEGORIES = [
     { icon: 'restaurant', name: 'Ăn uống' },
@@ -17,10 +18,10 @@ export default function TransactionCard({ tx }: { tx: Transaction }) {
         setFadingOut(true);
         // Add small delay for visual feedback before removing
         setTimeout(async () => {
-            await db.transactions.update(tx.id!, {
+            await updateDoc(doc(db.transactions, tx.id!), {
                 category: categoryObj,
                 status: 'classified'
-            });
+            } as any);
         }, 300);
     };
 

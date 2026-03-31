@@ -8,7 +8,7 @@ import {
     type QuerySnapshot,
     type FirestoreError
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db } from '../firebase';
 
 export function useFirestoreQuery<T>(
     collectionName: string,

@@ -3,7 +3,7 @@ import { useAuth } from '../AuthContext';
 import { syncEmails } from '../services/gmailService';
 import { useFirestoreQuery } from '../hooks/useFirestore';
 import { where } from 'firebase/firestore';
-import type { Transaction } from '../types';
+import type { Transaction } from '../db';
 import { RefreshCw, LogOut } from 'lucide-react';
 
 export default function Header() {

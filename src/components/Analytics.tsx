@@ -1,15 +1,17 @@
 import { useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db';
+import type { Transaction } from '../db';
+import { useFirestoreQuery } from '../hooks/useFirestore';
+import { where } from 'firebase/firestore';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 // Extract the emoji component out for the legend
 const COLORS = ['#0056D2', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#EC4899', '#BA1A1A', '#64748B'];
 
 export default function Analytics() {
-    const classifiedTxs = useLiveQuery(() =>
-        db.transactions.where('status').equals('classified').sortBy('date') // oldest first
-    );
+    const { data: rawClassified = [] } = useFirestoreQuery<Transaction>('transactions', [
+        where('status', '==', 'classified')
+    ]);
+    const classifiedTxs = useMemo(() => [...rawClassified].sort((a, b) => a.date - b.date), [rawClassified]);
 
     const chartData = useMemo(() => {
         if (!classifiedTxs) return [];

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db';
+import { useFirestoreQuery } from '../hooks/useFirestore';
+import { db, type Transaction } from '../db';
+import { addDoc } from 'firebase/firestore';
 import type { PageId } from './Layout';
 
 interface HistoryPageProps {
@@ -39,9 +40,7 @@ export default function HistoryPage(_props: HistoryPageProps) {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [createForm, setCreateForm] = useState(emptyCreateForm);
 
-    const allTransactions = useLiveQuery(() =>
-        db.transactions.toArray()
-    ) || [];
+    const { data: allTransactions = [] } = useFirestoreQuery<Transaction>('transactions');
 
     // Extract unique categories for filter chips
     const categories = useMemo(() => {
@@ -150,11 +149,11 @@ export default function HistoryPage(_props: HistoryPageProps) {
         if (!rawAmt || !createForm.description) return;
         const finalAmount = createForm.txType === 'expense' ? -Math.abs(rawAmt) : Math.abs(rawAmt);
         const emailId = `manual_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-        await db.transactions.add({
+        await addDoc(db.transactions, {
             emailId,
             amount: finalAmount,
             description: createForm.description,
-            date: new Date(createForm.date),
+            date: new Date(createForm.date).getTime(),
             category: createForm.category || null,
             status: 'classified',
         });
@@ -366,10 +365,10 @@ export default function HistoryPage(_props: HistoryPageProps) {
                                         type="button"
                                         onClick={() => setCreateForm({ ...createForm, txType: t })}
                                         className={`py-2.5 rounded-lg text-sm font-bold transition-all ${createForm.txType === t
-                                                ? t === 'income'
-                                                    ? 'bg-green-600 text-white shadow-md'
-                                                    : 'bg-error text-on-error shadow-md'
-                                                : 'text-on-surface-variant hover:bg-surface-container-high'
+                                            ? t === 'income'
+                                                ? 'bg-green-600 text-white shadow-md'
+                                                : 'bg-error text-on-error shadow-md'
+                                            : 'text-on-surface-variant hover:bg-surface-container-high'
                                             }`}
                                     >
                                         {t === 'income' ? '💰 Thu nhập' : '💸 Chi tiêu'}
@@ -432,8 +431,8 @@ export default function HistoryPage(_props: HistoryPageProps) {
                                                 type="button"
                                                 onClick={() => setCreateForm({ ...createForm, category: createForm.category === cat ? '' : cat })}
                                                 className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-semibold border transition-all ${createForm.category === cat
-                                                        ? 'bg-primary text-on-primary border-primary'
-                                                        : 'bg-surface-container text-on-surface-variant border-transparent hover:border-primary/30'
+                                                    ? 'bg-primary text-on-primary border-primary'
+                                                    : 'bg-surface-container text-on-surface-variant border-transparent hover:border-primary/30'
                                                     }`}
                                             >
                                                 <span className="material-symbols-outlined text-[14px]">{icon}</span>
