@@ -30,11 +30,11 @@ export default function IncomeTab() {
     const incomes = useMemo(() => [...rawIncomes].sort((a, b) => b.date - a.date), [rawIncomes]);
     const { data: goals = [] } = useFirestoreQuery<Goal>('goals', [where('status', '==', 'active')]);
 
-    const totalThisMonth = incomes
+    const totalLast30Days = incomes
         .filter(i => {
-            const d = new Date(i.date);
-            const now = new Date();
-            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            const now = Date.now();
+            const thirtiethDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+            return i.date >= thirtiethDaysAgo && i.date <= now;
         })
         .reduce((sum, i) => sum + i.amount, 0);
 
@@ -43,12 +43,12 @@ export default function IncomeTab() {
         const amt = parseFloat(form.amount.replace(/,/g, ''));
         if (!amt || !form.source) return;
 
-        const entry: Omit<IncomeEntry, 'id'> = {
+        const entry: any = {
             amount: amt,
             source: form.source,
             date: new Date(form.date).getTime(),
-            goalId: form.goalId || undefined,
-            note: form.note || undefined,
+            goalId: form.goalId || null,
+            note: form.note || null,
         };
 
         if (editingId !== null) {
@@ -92,8 +92,8 @@ export default function IncomeTab() {
             {/* Summary + Add Button */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <p className="text-outline text-xs font-bold uppercase tracking-wider mb-1">Tổng thu nhập tháng này</p>
-                    <p className="text-3xl font-extrabold text-green-700 tracking-tight">{totalThisMonth.toLocaleString()} <span className="text-sm font-semibold text-outline">VNĐ</span></p>
+                    <p className="text-outline text-xs font-bold uppercase tracking-wider mb-1">Tổng thu nhập 30 ngày qua</p>
+                    <p className="text-3xl font-extrabold text-green-700 tracking-tight">{totalLast30Days.toLocaleString()} <span className="text-sm font-semibold text-outline">VNĐ</span></p>
                 </div>
                 <button
                     onClick={() => { setShowForm(!showForm); setEditingId(null); setForm(emptyForm); }}

@@ -39,21 +39,23 @@ export default function GoalsTab() {
         const target = parseFloat(form.targetAmount.replace(/,/g, ''));
         if (!form.name || !target) return;
 
+        const deadlineVal = form.deadline ? new Date(form.deadline).getTime() : null;
+
         if (editingId !== null) {
             await updateDoc(doc(db.goals, editingId), {
                 name: form.name,
                 targetAmount: target,
-                deadline: form.deadline ? new Date(form.deadline).getTime() : undefined,
+                deadline: deadlineVal,
             } as any);
             setEditingId(null);
         } else {
             await addDoc(db.goals, {
                 name: form.name,
                 targetAmount: target,
-                deadline: form.deadline ? new Date(form.deadline).getTime() : undefined,
+                deadline: deadlineVal,
                 status: 'active',
                 createdAt: Date.now(),
-            });
+            } as any);
         }
         setForm(emptyForm);
         setShowForm(false);
