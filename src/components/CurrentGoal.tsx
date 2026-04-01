@@ -1,4 +1,4 @@
-import type { Goal, IncomeEntry } from '../db';
+import type { Goal, GoalContribution } from '../db';
 import { useFirestoreQuery } from '../hooks/useFirestore';
 import { where } from 'firebase/firestore';
 import type { PageId } from './Layout';
@@ -14,8 +14,8 @@ export default function CurrentGoal({ onNavigate }: CurrentGoalProps) {
     const firstActiveGoal = activeGoals.length > 0 ? activeGoals[0] : null;
     const goalId = firstActiveGoal?.id;
 
-    const { data: incomes = [] } = useFirestoreQuery<IncomeEntry>('incomes');
-    const linkedIncomes = goalId ? incomes.filter(i => i.goalId === goalId) : [];
+    const { data: contributions = [] } = useFirestoreQuery<GoalContribution>('contributions');
+    const linkedContributions = goalId ? contributions.filter(c => c.goalId === goalId) : [];
 
     // No active goal → fallback
     if (activeGoals === undefined) {
@@ -40,7 +40,7 @@ export default function CurrentGoal({ onNavigate }: CurrentGoalProps) {
 
     const goalName = firstActiveGoal.name;
     const targetAmount = firstActiveGoal.targetAmount;
-    const currentAmount = linkedIncomes.reduce((sum, i) => sum + i.amount, 0);
+    const currentAmount = linkedContributions.reduce((sum, c) => sum + c.amount, 0);
     const progress = Math.min(Math.round((currentAmount / targetAmount) * 100), 100);
 
     // SVG Circle Math for the Gauge

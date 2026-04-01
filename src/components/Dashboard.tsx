@@ -1,4 +1,4 @@
-import type { IncomeEntry, Transaction } from '../db';
+import type { IncomeEntry, Transaction, GoalContribution } from '../db';
 import { useFirestoreQuery } from '../hooks/useFirestore';
 import { where } from 'firebase/firestore';
 import RecentClassified from './RecentClassified';
@@ -14,12 +14,16 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         where('status', '==', 'classified')
     ]);
     const { data: incomes = [] } = useFirestoreQuery<IncomeEntry>('incomes');
+    const { data: contributions = [] } = useFirestoreQuery<GoalContribution>('contributions');
 
     const manualIncome = incomes.reduce((acc, i) => acc + i.amount, 0);
     const txIncome = transactions.filter(t => t.amount > 0).reduce((acc, t) => acc + t.amount, 0);
     const income = manualIncome + txIncome;
     const expense = transactions.filter(t => t.amount < 0).reduce((acc, t) => acc + Math.abs(t.amount), 0);
-    const balance = income - expense;
+
+    const netWorth = income - expense;
+    const earmarked = contributions.reduce((acc, c) => acc + c.amount, 0);
+    const available = netWorth - earmarked;
 
     return (
         <div className="p-6 md:p-10 min-w-0 max-w-[1200px] mx-auto">
@@ -36,12 +40,19 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-110 duration-500"></div>
                     <div className="relative z-10">
                         <div className="flex justify-between items-start mb-6">
-                            <span className="text-label-md font-bold text-primary tracking-widest uppercase">Số dư hiện tại</span>
+                            <span className="text-label-md font-bold text-primary tracking-widest uppercase">Số dư khả dụng</span>
                             <span className="material-symbols-outlined text-primary/40">visibility</span>
                         </div>
-                        <div className="flex items-baseline gap-3">
-                            <span className="text-[48px] font-extrabold text-primary leading-none tracking-tighter">{balance.toLocaleString()}</span>
+                        <div className="flex items-baseline gap-3 mb-2">
+                            <span className="text-[48px] font-extrabold text-primary leading-none tracking-tighter">{available.toLocaleString()}</span>
                             <span className="text-outline font-semibold text-sm">VNĐ</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm font-medium text-outline">
+                            <span>Tổng tài sản:</span>
+                            <span className="text-on-surface">{netWorth.toLocaleString()}</span>
+                            <span className="mx-1">•</span>
+                            <span>Đã góp quỹ (Mục tiêu):</span>
+                            <span className="text-on-surface">{earmarked.toLocaleString()}</span>
                         </div>
                     </div>
                 </div>

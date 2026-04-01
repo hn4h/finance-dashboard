@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
-import { db, type IncomeEntry, type Goal } from '../db';
+import { db, type IncomeEntry } from '../db';
 import { useFirestoreQuery } from '../hooks/useFirestore';
-import { where, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 
 const SOURCE_PRESETS = ['Lương', 'Freelance', 'Đầu tư', 'Thưởng', 'Khác'];
 
@@ -9,7 +9,6 @@ interface IncomeFormData {
     amount: string;
     source: string;
     date: string;
-    goalId: string;
     note: string;
 }
 
@@ -17,7 +16,6 @@ const emptyForm: IncomeFormData = {
     amount: '',
     source: '',
     date: new Date().toISOString().slice(0, 10),
-    goalId: '',
     note: '',
 };
 
@@ -28,7 +26,6 @@ export default function IncomeTab() {
 
     const { data: rawIncomes = [] } = useFirestoreQuery<IncomeEntry>('incomes');
     const incomes = useMemo(() => [...rawIncomes].sort((a, b) => b.date - a.date), [rawIncomes]);
-    const { data: goals = [] } = useFirestoreQuery<Goal>('goals', [where('status', '==', 'active')]);
 
     const totalLast30Days = incomes
         .filter(i => {
@@ -47,7 +44,6 @@ export default function IncomeTab() {
             amount: amt,
             source: form.source,
             date: new Date(form.date).getTime(),
-            goalId: form.goalId || null,
             note: form.note || null,
         };
 
@@ -66,7 +62,6 @@ export default function IncomeTab() {
             amount: income.amount.toLocaleString('en-US'),
             source: income.source,
             date: new Date(income.date).toISOString().slice(0, 10),
-            goalId: income.goalId?.toString() || '',
             note: income.note || '',
         });
         setEditingId(income.id!);
@@ -84,8 +79,6 @@ export default function IncomeTab() {
         setEditingId(null);
         setShowForm(false);
     };
-
-    const goalNameMap = new Map(goals.map(g => [g.id!, g.name]));
 
     return (
         <div>
@@ -159,27 +152,15 @@ export default function IncomeTab() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Goal Link */}
-                        <div>
-                            <label className="block text-xs font-bold text-outline uppercase tracking-wider mb-1.5">Gắn mục tiêu (tùy chọn)</label>
-                            <select
-                                value={form.goalId}
-                                onChange={e => setForm({ ...form, goalId: e.target.value })}
-                                className="w-full px-4 py-2.5 rounded-lg border border-outline-variant/30 bg-surface text-on-surface font-semibold focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                            >
-                                <option value="">— Không gắn —</option>
-                                {goals.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                            </select>
-                        </div>
+                    <div className="grid grid-cols-1 gap-4">
                         {/* Note */}
                         <div>
-                            <label className="block text-xs font-bold text-outline uppercase tracking-wider mb-1.5">Ghi chú</label>
+                            <label className="block text-xs font-bold text-outline uppercase tracking-wider mb-1.5">Ghi chú (tùy chọn)</label>
                             <input
                                 type="text"
                                 value={form.note}
                                 onChange={e => setForm({ ...form, note: e.target.value })}
-                                placeholder="Vd: Lương T3/2026"
+                                placeholder="Vd: Lương tháng này"
                                 className="w-full px-4 py-2.5 rounded-lg border border-outline-variant/30 bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                             />
                         </div>
@@ -216,11 +197,6 @@ export default function IncomeTab() {
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-0.5">
                                     <span className="font-bold text-on-surface">{income.source}</span>
-                                    {income.goalId && goalNameMap.has(income.goalId) && (
-                                        <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                                            🎯 {goalNameMap.get(income.goalId)}
-                                        </span>
-                                    )}
                                 </div>
                                 <div className="flex items-center gap-3 text-xs text-outline">
                                     <span>{new Date(income.date).toLocaleDateString('vi-VN')}</span>

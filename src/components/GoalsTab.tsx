@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { db, type Goal, type IncomeEntry } from '../db';
+import { db, type Goal, type GoalContribution } from '../db';
 import { useFirestoreQuery } from '../hooks/useFirestore';
 import { addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 
@@ -20,18 +20,21 @@ export default function GoalsTab() {
     const [form, setForm] = useState<GoalFormData>(emptyForm);
     const [editingId, setEditingId] = useState<string | null>(null);
 
+    const [fundingGoal, setFundingGoal] = useState<Goal | null>(null);
+    const [fundAmount, setFundAmount] = useState<string>('');
+
     const { data: allGoals = [] } = useFirestoreQuery<Goal>('goals');
-    const { data: incomes = [] } = useFirestoreQuery<IncomeEntry>('incomes');
+    const { data: contributions = [] } = useFirestoreQuery<GoalContribution>('contributions');
 
     // Separate active and done
     const activeGoals = allGoals.filter(g => g.status === 'active');
     const doneGoals = allGoals.filter(g => g.status === 'done');
 
-    // Calculate progress for each goal from linked incomes
+    // Calculate progress for each goal from contributions
     const getGoalProgress = (goalId: string) => {
-        return incomes
-            .filter(i => i.goalId === goalId)
-            .reduce((sum, i) => sum + i.amount, 0);
+        return contributions
+            .filter(c => c.goalId === goalId)
+            .reduce((sum, c) => sum + c.amount, 0);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -83,6 +86,28 @@ export default function GoalsTab() {
         } as any);
     };
 
+    const handleFund = (goal: Goal) => {
+        setFundingGoal(goal);
+        setFundAmount('');
+    };
+
+    const handleFundSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!fundingGoal) return;
+        const amt = parseFloat(fundAmount.replace(/\D/g, ''));
+        if (!amt || isNaN(amt) || amt <= 0) {
+            alert('Số tiền không hợp lệ.');
+            return;
+        }
+        await addDoc(db.contributions, {
+            goalId: fundingGoal.id,
+            amount: amt,
+            date: Date.now()
+        } as any);
+        setFundingGoal(null);
+        setFundAmount('');
+    };
+
     const handleCancel = () => {
         setForm(emptyForm);
         setEditingId(null);
@@ -115,9 +140,14 @@ export default function GoalsTab() {
                             {/* Actions */}
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 {!isDone && (
-                                    <button onClick={() => handleEdit(goal)} className="p-1.5 rounded-lg hover:bg-surface-container-high transition-colors cursor-pointer" title="Sửa">
-                                        <span className="material-symbols-outlined text-[18px] text-outline">edit</span>
-                                    </button>
+                                    <>
+                                        <button onClick={() => handleFund(goal)} className="p-1.5 rounded-lg hover:bg-green-100 transition-colors cursor-pointer text-green-700" title="Góp quỹ">
+                                            <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                                        </button>
+                                        <button onClick={() => handleEdit(goal)} className="p-1.5 rounded-lg hover:bg-surface-container-high transition-colors cursor-pointer" title="Sửa">
+                                            <span className="material-symbols-outlined text-[18px] text-outline">edit</span>
+                                        </button>
+                                    </>
                                 )}
                                 <button onClick={() => handleDelete(goal.id!)} className="p-1.5 rounded-lg hover:bg-error-container/30 transition-colors cursor-pointer" title="Xoá">
                                     <span className="material-symbols-outlined text-[18px] text-error">delete</span>
@@ -259,6 +289,56 @@ export default function GoalsTab() {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Funding Modal */}
+            {fundingGoal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-surface-container-lowest w-full max-w-sm p-6 rounded-2xl shadow-2xl relative animate-in zoom-in-95 duration-200">
+                        <button
+                            onClick={() => setFundingGoal(null)}
+                            className="absolute top-4 right-4 p-1.5 rounded-full text-outline hover:bg-surface-container-high transition-colors cursor-pointer"
+                        >
+                            <span className="material-symbols-outlined text-[20px]">close</span>
+                        </button>
+
+                        <div className="w-12 h-12 rounded-full bg-green-100 text-green-700 flex items-center justify-center mb-4">
+                            <span className="material-symbols-outlined text-[24px]">savings</span>
+                        </div>
+
+                        <h3 className="text-xl font-extrabold text-on-surface mb-1">Góp quỹ</h3>
+                        <p className="text-sm text-outline font-medium mb-6">
+                            Mục tiêu: <span className="font-bold text-primary">{fundingGoal.name}</span>
+                        </p>
+
+                        <form onSubmit={handleFundSubmit} className="space-y-6">
+                            <div>
+                                <label className="block text-xs font-bold text-outline uppercase tracking-wider mb-2">Số tiền góp (VNĐ)</label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        autoFocus
+                                        value={fundAmount}
+                                        onChange={e => {
+                                            const raw = e.target.value.replace(/\D/g, '');
+                                            const formatted = raw ? parseInt(raw, 10).toLocaleString('en-US') : '';
+                                            setFundAmount(formatted);
+                                        }}
+                                        placeholder="0"
+                                        required
+                                        className="w-full pl-4 pr-12 py-3.5 rounded-xl border border-outline-variant/40 bg-surface text-on-surface font-bold text-xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all placeholder:text-outline/30"
+                                    />
+                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-outline font-bold">đ</span>
+                                </div>
+                            </div>
+
+                            <button type="submit" className="w-full bg-primary text-on-primary py-3.5 rounded-xl font-bold text-[15px] hover:bg-primary-container hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-[0.98] cursor-pointer">
+                                Xác nhận góp quỹ
+                            </button>
+                        </form>
+                    </div>
                 </div>
             )}
         </div>

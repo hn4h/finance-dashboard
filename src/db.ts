@@ -22,7 +22,14 @@ export interface IncomeEntry {
     amount: number
     source: string         // "Lương", "Freelance", "Đầu tư"...
     date: number
-    goalId?: string        // link to a goal (optional)
+    note?: string
+}
+
+export interface GoalContribution {
+    id?: string
+    goalId: string
+    amount: number
+    date: number
     note?: string
 }
 
@@ -44,5 +51,6 @@ export const db = {
     transactions: createCollection<Transaction>('transactions'),
     settings: createCollection<Setting>('settings'),
     incomes: createCollection<IncomeEntry>('incomes'),
-    goals: createCollection<Goal>('goals')
+    goals: createCollection<Goal>('goals'),
+    contributions: createCollection<GoalContribution>('contributions')
 }
