@@ -47,14 +47,14 @@ export default function HistoryPage(_props: HistoryPageProps) {
     const categories = useMemo(() => {
         const cats = new Set<string>();
         allTransactions.forEach(tx => {
-            if (tx.category) cats.add(tx.category);
+            if (tx.status !== 'ignored' && tx.category) cats.add(tx.category);
         });
         return Array.from(cats).sort();
     }, [allTransactions]);
 
     // Filter transactions by search + category
     const filtered = useMemo(() => {
-        let result = [...allTransactions];
+        let result = allTransactions.filter(tx => tx.status !== 'ignored');
 
         if (search.trim()) {
             const q = search.toLowerCase();
