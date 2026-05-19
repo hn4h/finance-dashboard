@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { Transaction } from '../db';
 import { useFirestoreQuery } from '../hooks/useFirestore';
 import { where } from 'firebase/firestore';
@@ -7,11 +7,42 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 // Extract the emoji component out for the legend
 const COLORS = ['#0056D2', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#EC4899', '#BA1A1A', '#64748B'];
 
+type DateFilterType = 'all' | 'this_week' | 'this_month' | 'last_month';
+
 export default function Analytics() {
+    const [dateFilter, setDateFilter] = useState<DateFilterType>('this_month');
     const { data: rawClassified = [] } = useFirestoreQuery<Transaction>('transactions', [
         where('status', '==', 'classified')
     ]);
-    const classifiedTxs = useMemo(() => [...rawClassified].sort((a, b) => a.date - b.date), [rawClassified]);
+
+    const classifiedTxs = useMemo(() => {
+        let result = [...rawClassified];
+        if (dateFilter !== 'all') {
+            const now = new Date();
+            let startTime = 0;
+            let endTime = Infinity;
+
+            if (dateFilter === 'this_week') {
+                const day = now.getDay();
+                const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+                const monday = new Date(new Date(now).setDate(diff));
+                startTime = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()).getTime();
+                endTime = startTime + 7 * 86400000 - 1;
+            } else if (dateFilter === 'this_month') {
+                startTime = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+                endTime = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).getTime();
+            } else if (dateFilter === 'last_month') {
+                startTime = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+                endTime = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999).getTime();
+            }
+            
+            result = result.filter(tx => {
+                const txTime = new Date(tx.date).getTime();
+                return txTime >= startTime && txTime <= endTime;
+            });
+        }
+        return result.sort((a, b) => a.date - b.date);
+    }, [rawClassified, dateFilter]);
 
     const chartData = useMemo(() => {
         if (!classifiedTxs) return [];
@@ -30,6 +61,10 @@ export default function Analytics() {
             .sort((a, b) => b.value - a.value);
     }, [classifiedTxs]);
 
+    const totalExpense = useMemo(() => {
+        return chartData.reduce((acc, curr) => acc + curr.value, 0);
+    }, [chartData]);
+
     if (classifiedTxs === undefined) {
         return <div className="p-10 text-center animate-pulse text-body">Đang tải biểu đồ...</div>;
     }
@@ -40,7 +75,22 @@ export default function Analytics() {
         <div className="flex flex-col gap-6">
             {/* Chart Section */}
             <div className="bg-surface-container-lowest rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] p-6 border border-surface-container-highest/20">
-                <h2 className="text-xl font-bold text-on-surface mb-6">Cơ cấu chi tiêu</h2>
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 className="text-xl font-bold text-on-surface">Cơ cấu chi tiêu</h2>
+                        <p className="text-sm text-outline mt-1">Tổng cộng: <span className="font-bold text-expense">-{totalExpense.toLocaleString()} đ</span></p>
+                    </div>
+                    <select
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value as DateFilterType)}
+                        className="bg-surface-container-low border border-surface-container-highest/30 text-on-surface text-sm font-semibold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    >
+                        <option value="this_month">Tháng này</option>
+                        <option value="last_month">Tháng trước</option>
+                        <option value="this_week">Tuần này</option>
+                        <option value="all">Toàn bộ thời gian</option>
+                    </select>
+                </div>
 
                 {chartData.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-10 bg-surface-container-low rounded-xl border border-surface-container/50">

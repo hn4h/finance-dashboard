@@ -10,6 +10,7 @@ const CATEGORIES = [
     { icon: 'sports_esports', name: 'Giải trí', color: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-600' },
     { icon: 'favorite', name: 'Người yêu', color: 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-500' },
     { icon: 'category', name: 'Khác', color: 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600' },
+    { icon: 'block', name: 'Bỏ qua (Lỗi)', color: 'bg-red-50 hover:bg-red-100 border-red-200 text-red-600', isIgnore: true },
 ];
 
 type AnimState = 'idle' | 'exit-up' | 'enter-up';
@@ -38,7 +39,7 @@ export default function ClassifyPage() {
         }
     }, [transactions, animState]);
 
-    const handleCategorize = useCallback(async (categoryLabel: string) => {
+    const handleCategorize = useCallback(async (cat: typeof CATEGORIES[0]) => {
         if (!displayTx || animState !== 'idle') return;
 
         // 1. Animate out
@@ -46,10 +47,17 @@ export default function ClassifyPage() {
 
         // 2. After animation, update DB and prep next card
         setTimeout(async () => {
-            await updateDoc(doc(db.transactions, displayTx.id!), {
-                category: categoryLabel,
-                status: 'classified',
-            } as any);
+            if ('isIgnore' in cat && cat.isIgnore) {
+                await updateDoc(doc(db.transactions, displayTx.id!), {
+                    category: null,
+                    status: 'ignored',
+                } as any);
+            } else {
+                await updateDoc(doc(db.transactions, displayTx.id!), {
+                    category: `${cat.icon} ${cat.name}`,
+                    status: 'classified',
+                } as any);
+            }
 
             // 3. Animate next card in
             setAnimState('enter-up');
@@ -65,7 +73,7 @@ export default function ClassifyPage() {
             const idx = parseInt(e.key) - 1;
             if (idx >= 0 && idx < CATEGORIES.length) {
                 const cat = CATEGORIES[idx];
-                handleCategorize(`${cat.icon} ${cat.name}`);
+                handleCategorize(cat);
             }
         };
         window.addEventListener('keydown', handler);
@@ -214,7 +222,7 @@ export default function ClassifyPage() {
                     {CATEGORIES.map((cat, i) => (
                         <button
                             key={cat.name}
-                            onClick={() => handleCategorize(`${cat.icon} ${cat.name}`)}
+                            onClick={() => handleCategorize(cat)}
                             disabled={animState !== 'idle'}
                             className={`group flex flex-col items-center gap-2 p-4 rounded-2xl border-2 ${cat.color} transition-all duration-200 cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-md hover:-translate-y-0.5`}
                         >
