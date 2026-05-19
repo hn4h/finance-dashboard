@@ -8,7 +8,7 @@ export interface Transaction {
     description: string
     date: number           // We use timestamps (milliseconds) to simplify serialization
     category: string | null
-    status: 'unclassified' | 'classified'
+    status: 'unclassified' | 'classified' | 'ignored'
 }
 
 export interface Setting {
