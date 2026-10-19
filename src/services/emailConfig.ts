@@ -56,3 +56,25 @@ export function detectParserRule(subject: string): EmailSubjectRule | null {
     }
     return null;
 }
+
+// ─── Self-transfer filter ────────────────────────────────────
+
+/** Transfers to these beneficiaries are moves to the owner's secondary account — not real expenses. */
+export const SELF_BENEFICIARY_NAMES = ['NGUYEN LE HAI ANH'];
+
+/** Uppercase, strip Vietnamese diacritics and collapse whitespace so "Nguyễn Lê Hải Anh" == "NGUYEN LE HAI ANH" */
+function normalizeName(name: string): string {
+    return name
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'D')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toUpperCase();
+}
+
+export function isSelfBeneficiary(name?: string): boolean {
+    if (!name) return false;
+    const normalized = normalizeName(name);
+    return SELF_BENEFICIARY_NAMES.some(n => normalizeName(n) === normalized);
+}

@@ -6,6 +6,7 @@ export interface Transaction {
     emailId: string        // unique — prevent duplicate
     amount: number         // negative = expense, positive = income
     description: string
+    beneficiary?: string   // "Tên người hưởng" from transfer emails
     date: number           // We use timestamps (milliseconds) to simplify serialization
     category: string | null
     status: 'unclassified' | 'classified' | 'ignored'
@@ -22,7 +23,7 @@ export interface IncomeEntry {
     amount: number
     source: string         // "Lương", "Freelance", "Đầu tư"...
     date: number
-    note?: string
+    note?: string | null
 }
 
 export interface GoalContribution {
@@ -30,14 +31,14 @@ export interface GoalContribution {
     goalId: string
     amount: number
     date: number
-    note?: string
+    note?: string | null
 }
 
 export interface Goal {
     id?: string
     name: string
     targetAmount: number
-    deadline?: number
+    deadline?: number | null
     status: 'active' | 'done'
     createdAt: number
 }

@@ -1,110 +1,65 @@
+import { where } from 'firebase/firestore';
 import type { Goal, GoalContribution } from '../db';
 import { useFirestoreQuery } from '../hooks/useFirestore';
-import { where } from 'firebase/firestore';
-import type { PageId } from './Layout';
+import { formatVND } from '../lib/format';
+import type { PageId } from '../lib/router';
+import Card from './ui/Card';
+import EmptyState from './ui/EmptyState';
 
-interface CurrentGoalProps {
-    onNavigate?: (page: PageId) => void;
-}
+const RADIUS = 52;
+const STROKE = 12;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-export default function CurrentGoal({ onNavigate }: CurrentGoalProps) {
-    const { data: activeGoals = [] } = useFirestoreQuery<Goal>('goals', [
-        where('status', '==', 'active')
-    ]);
-    const firstActiveGoal = activeGoals.length > 0 ? activeGoals[0] : null;
-    const goalId = firstActiveGoal?.id;
-
+export default function CurrentGoal({ onNavigate }: { onNavigate: (page: PageId) => void }) {
+    const { data: activeGoals } = useFirestoreQuery<Goal>('goals', [where('status', '==', 'active')]);
     const { data: contributions = [] } = useFirestoreQuery<GoalContribution>('contributions');
-    const linkedContributions = goalId ? contributions.filter(c => c.goalId === goalId) : [];
+    const goal = activeGoals?.[0];
 
-    // No active goal → fallback
-    if (activeGoals === undefined) {
-        // Still loading
+    const open = <button onClick={() => onNavigate('finance')} className="text-sm font-semibold text-primary">Quản lý</button>;
+
+    if (!goal) {
         return (
-            <div className="bg-surface-container-lowest p-8 rounded-xl shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] border border-surface-container-highest/20 h-full flex flex-col items-center justify-center text-center">
-                <span className="material-symbols-outlined text-4xl text-outline/30 mb-3">hourglass_empty</span>
-                <p className="text-outline font-medium text-sm">Đang tải...</p>
-            </div>
+            <Card title="Mục tiêu" action={open}>
+                {activeGoals === undefined
+                    ? <div className="h-40 rounded-xl bg-surface-2 animate-pulse" />
+                    : <EmptyState icon="flag" title="Chưa có mục tiêu" description="Tạo mục tiêu trong mục Tài chính" />}
+            </Card>
         );
     }
 
-    if (firstActiveGoal === null) {
-        return (
-            <div className="bg-surface-container-lowest p-8 rounded-xl shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] border border-surface-container-highest/20 h-full flex flex-col items-center justify-center text-center">
-                <span className="material-symbols-outlined text-4xl text-outline/30 mb-3">flag</span>
-                <p className="text-outline font-semibold">Chưa có mục tiêu</p>
-                <p className="text-outline text-sm mt-1">Vào trang Tài chính để tạo mục tiêu đầu tiên</p>
-            </div>
-        );
-    }
-
-    const goalName = firstActiveGoal.name;
-    const targetAmount = firstActiveGoal.targetAmount;
-    const currentAmount = linkedContributions.reduce((sum, c) => sum + c.amount, 0);
-    const progress = Math.min(Math.round((currentAmount / targetAmount) * 100), 100);
-
-    // SVG Circle Math for the Gauge
-    const radius = 64;
-    const strokeWidth = 14;
-    const circumference = 2 * Math.PI * radius;
-    const strokeDashoffset = circumference - (progress / 100) * circumference;
+    const current = contributions.filter(c => c.goalId === goal.id).reduce((sum, c) => sum + c.amount, 0);
+    const progress = Math.min(Math.round((current / goal.targetAmount) * 100), 100);
 
     return (
-        <div className="bg-surface-container-lowest p-8 rounded-xl shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] border border-surface-container-highest/20 h-full flex flex-col items-center text-center">
-            <div className="w-full flex justify-between items-start mb-4">
-                <span className="text-label-md font-bold text-primary tracking-widest uppercase text-left">Mục tiêu</span>
-                <button onClick={() => onNavigate?.('finance')} className="material-symbols-outlined text-outline hover:text-primary transition-colors cursor-pointer">edit</button>
-            </div>
-
-            <h3 className="text-xl font-bold text-on-surface mb-8">{goalName}</h3>
-
-            <div className="relative flex items-center justify-center w-40 h-40 mb-8">
-                {/* Background Circle */}
-                <svg className="absolute w-full h-full transform -rotate-90" viewBox="0 0 160 160">
-                    <circle
-                        cx="80"
-                        cy="80"
-                        r={radius}
-                        fill="transparent"
-                        stroke="currentColor"
-                        className="text-surface-container-high"
-                        strokeWidth={strokeWidth}
-                    />
-                    {/* Foreground Circle */}
-                    <circle
-                        cx="80"
-                        cy="80"
-                        r={radius}
-                        fill="transparent"
-                        stroke="currentColor"
-                        className="text-primary transition-all duration-1000 ease-out"
-                        strokeWidth={strokeWidth}
-                        strokeDasharray={circumference}
-                        strokeDashoffset={strokeDashoffset}
-                        strokeLinecap="round"
-                    />
-                </svg>
-                {/* Center Text */}
-                <div className="absolute flex flex-col items-center justify-center">
-                    <span className="text-4xl font-extrabold text-on-surface tracking-tighter">{progress}%</span>
+        <Card title="Mục tiêu" action={open}>
+            <div className="flex lg:flex-col items-center gap-5">
+                <div className="relative size-32 shrink-0">
+                    <svg className="size-full -rotate-90" viewBox="0 0 128 128">
+                        <circle cx="64" cy="64" r={RADIUS} fill="none" stroke="currentColor" strokeWidth={STROKE} className="text-surface-2" />
+                        <circle
+                            cx="64" cy="64" r={RADIUS} fill="none" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round"
+                            strokeDasharray={CIRCUMFERENCE} strokeDashoffset={CIRCUMFERENCE * (1 - progress / 100)}
+                            className="text-primary transition-[stroke-dashoffset] duration-700"
+                        />
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center text-2xl font-extrabold tabular">{progress}%</span>
+                </div>
+                <div className="flex-1 min-w-0 w-full space-y-2 text-sm">
+                    <p className="text-base font-bold truncate">{goal.name}</p>
+                    <Line label="Đã tích luỹ" value={formatVND(current)} />
+                    <Line label="Mục tiêu" value={formatVND(goal.targetAmount)} />
+                    <Line label="Còn lại" value={formatVND(Math.max(goal.targetAmount - current, 0))} strong />
                 </div>
             </div>
+        </Card>
+    );
+}
 
-            <div className="w-full space-y-3">
-                <div className="flex justify-between items-center text-sm">
-                    <span className="text-outline font-medium">Đã tích lũy</span>
-                    <span className="font-bold text-on-surface">{currentAmount.toLocaleString()} đ</span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                    <span className="text-outline font-medium">Mục tiêu</span>
-                    <span className="font-bold text-on-surface">{targetAmount.toLocaleString()} đ</span>
-                </div>
-                <div className="w-full h-px bg-surface-container-highest/30 my-2"></div>
-                <div className="flex justify-between items-center text-sm text-green-600 font-semibold">
-                    <span>Còn lại</span>
-                    <span>{Math.max(targetAmount - currentAmount, 0).toLocaleString()} đ</span>
-                </div>
-            </div>
+function Line({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+    return (
+        <div className="flex justify-between gap-3">
+            <span className="text-muted">{label}</span>
+            <span className={`tabular ${strong ? 'font-bold text-income' : 'font-semibold'}`}>{value}</span>
         </div>
     );
 }
